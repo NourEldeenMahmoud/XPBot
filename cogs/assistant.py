@@ -16,8 +16,10 @@ class Assistant(commands.Cog):
 		self.xp_manager = xp_manager
 		self.db = database
 		self.config = config
-		self.api_key = os.getenv("GROQ_API_KEY", "").strip()
-		self.model_name = os.getenv("GROQ_MODEL", "llama3-8b-8192").strip()
+		# OpenAI GPT-3.5 only
+		self.api_key = os.getenv("OPENAI_API_KEY", "").strip()
+		self.model_name = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo").strip()
+
 
 	def _is_author_allowed(self, member: discord.Member) -> bool:
 		allowed = set(self.config.get_assistant_allowed_roles())
@@ -46,7 +48,7 @@ class Assistant(commands.Cog):
 			return
 		# لازم منشن للبوت عشان AI يرد
 		if not self.bot.user or self.bot.user not in message.mentions:
-			return
+			return 
 		# تحقق من الرولز المسموح لها
 		if not self._is_author_allowed(message.author):
 			return
@@ -158,12 +160,14 @@ class Assistant(commands.Cog):
 			lines.append(f"#{entry['rank']} - {name}: {entry['permanent_xp']} XP (Lv {entry['level']})")
 		return "\n".join(lines)
 
+
+
 	async def _ai_chat(self, message: discord.Message, user_query: str) -> str:
-		"""Call Groq Chat Completions to answer general queries in Egyptian Arabic."""
+		"""Call OpenAI Chat Completions to answer general queries in Egyptian Arabic."""
 		try:
 			if not self.api_key:
 				return ""
-			endpoint = "https://api.groq.com/openai/v1/chat/completions"
+			endpoint = "https://api.openai.com/v1/chat/completions"
 			headers = {
 				"Authorization": f"Bearer {self.api_key}",
 				"Content-Type": "application/json",
@@ -190,42 +194,27 @@ class Assistant(commands.Cog):
 				{"role": "system", "content": "\n".join(context_snippets)},
 				{"role": "user", "content": user_query},
 			]
-			model_to_use = self.model_name or "mixtral-8x7b-32768"
 			payload = {
-				"model": model_to_use,
+				"model": self.model_name,
 				"messages": messages,
 				"temperature": 0.3,
 				"max_tokens": 512,
 			}
 			async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
 				async with session.post(endpoint, headers=headers, json=payload) as resp:
-					if resp.status != 200:
+					if resp.status == 200:
+						data = await resp.json()
+						text = (
+							data.get("choices", [{}])[0]
+							.get("message", {})
+							.get("content", "")
+							.strip()
+						)
+						return text[:1800]
+					else:
 						err_text = await resp.text()
-						logger.error(f"Groq API error: {resp.status} {err_text}")
-						# Fallback تلقائي للموديل الافتراضي المدعوم
-						if ("model_not_found" in err_text) or ("does not exist" in err_text):
-							payload["model"] = "mixtral-8x7b-32768"
-							async with session.post(endpoint, headers=headers, json=payload) as resp2:
-								if resp2.status != 200:
-									logger.error(f"Groq API fallback error: {resp2.status} {await resp2.text()}")
-									return ""
-								data2 = await resp2.json()
-								text2 = (
-									data2.get("choices", [{}])[0]
-									.get("message", {})
-									.get("content", "")
-									.strip()
-								)
-								return text2[:1800]
+						logger.error(f"OpenAI API error: {resp.status} {err_text}")
 						return ""
-					data = await resp.json()
-					text = (
-						data.get("choices", [{}])[0]
-						.get("message", {})
-						.get("content", "")
-						.strip()
-					)
-					return text[:1800]
 		except Exception as e:
 			logger.error(f"AI chat error: {e}")
 			return ""
