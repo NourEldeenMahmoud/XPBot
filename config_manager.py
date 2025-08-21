@@ -93,7 +93,9 @@ class ConfigManager:
                 ],
                 "base_xp": 100,
                 "multiplier": 1.5
-            }
+            },
+            
+            "assistant_allowed_roles": []
         }
     
     def get(self, key: str, default: Any = None) -> Any:
@@ -301,6 +303,9 @@ class ConfigManager:
             summary += f"• Level {level}: <@&{role_id}>\n"
         
         summary += f"\n**Exempt Roles:** {len(self.get_exempt_roles())} roles\n"
+        # Assistant access
+        assistant_roles = ", ".join(f"<@&{rid}>" for rid in self.get_assistant_allowed_roles()) or "Everyone"
+        summary += f"**Assistant Allowed Roles:** {assistant_roles}\n"
         
         return summary
     
@@ -333,3 +338,21 @@ class ConfigManager:
                 issues.append("Exempt role not configured")
         
         return issues
+
+    # ------- Assistant access roles -------
+    def get_assistant_allowed_roles(self) -> List[int]:
+        return self.get("assistant_allowed_roles", [])
+    
+    def add_assistant_role(self, role_id: int) -> bool:
+        roles = self.get_assistant_allowed_roles()
+        if role_id not in roles:
+            roles.append(role_id)
+            return self.set("assistant_allowed_roles", roles)
+        return True
+    
+    def remove_assistant_role(self, role_id: int) -> bool:
+        roles = self.get_assistant_allowed_roles()
+        if role_id in roles:
+            roles.remove(role_id)
+            return self.set("assistant_allowed_roles", roles)
+        return True

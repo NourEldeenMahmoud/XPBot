@@ -52,6 +52,7 @@ class XPBot(commands.Bot):
         await self.load_extension('cogs.xp_commands')
         await self.load_extension('cogs.message_tracker')
         await self.load_extension('cogs.voice_tracker')
+        await self.load_extension('cogs.assistant')
         
         logger.info("All cogs loaded successfully")
     
