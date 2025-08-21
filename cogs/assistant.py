@@ -108,7 +108,8 @@ class Assistant(commands.Cog):
 	async def _handle_query(self, message: discord.Message, query: str) -> str:
 		q = query.strip()
 		if not q:
-			return await self._ai_chat(message, "أيوه يا بشمهندس؟ محتاجني في إيه؟")
+			# If no query, just return the default response directly
+			return "أيوه يا بشمهندس؟ محتاجني في إيه؟"
 
 		# Send everything to AI for natural responses
 		text = await self._ai_chat(message, q)
