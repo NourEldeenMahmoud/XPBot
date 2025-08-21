@@ -107,25 +107,7 @@ The bot includes a FastAPI web service for external integrations:
 - `GET /leaderboard?limit=10` - Get permanent leaderboard
 - `GET /weeklyboard?limit=10` - Get weekly leaderboard
 
-### Running Web Service
-```bash
-uvicorn web_service:app --host 0.0.0.0 --port 8000
-```
 
-## 🏗️ Architecture
-
-```
-├── bot.py                 # Main bot file
-├── config_manager.py      # Configuration management
-├── database.py           # Database operations
-├── xp_manager.py         # XP and level calculations
-├── web_service.py        # FastAPI web service
-├── cogs/                 # Discord.py cogs
-│   ├── xp_commands.py    # XP-related commands
-│   ├── message_tracker.py # Message tracking
-│   └── voice_tracker.py  # Voice tracking
-└── requirements.txt      # Python dependencies
-```
 
 ## 🔒 Security
 
@@ -162,30 +144,10 @@ For production deployment:
 2. Set up environment variables
 3. Use systemd or PM2 for process management
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## ⚠️ Disclaimer
 
 This bot is for educational and personal use. Make sure to comply with Discord's Terms of Service and your server's rules.
 
-## 🆘 Support
 
-If you encounter any issues:
-1. Check the logs for error messages
-2. Verify your configuration
-3. Ensure the bot has proper permissions
-4. Open an issue on GitHub
-
----
 
 **Made with ❤️ for the Discord community**
