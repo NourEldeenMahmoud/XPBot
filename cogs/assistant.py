@@ -17,7 +17,7 @@ class Assistant(commands.Cog):
 		self.db = database
 		self.config = config
 		self.api_key = os.getenv("GROQ_API_KEY", "").strip()
-		self.model_name = os.getenv("GROQ_MODEL", "mixtral-8x7b-32768").strip()
+		self.model_name = os.getenv("GROQ_MODEL", "llama3-8b-8192").strip()
 
 	def _is_author_allowed(self, member: discord.Member) -> bool:
 		allowed = set(self.config.get_assistant_allowed_roles())
