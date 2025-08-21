@@ -4,8 +4,11 @@ import uvicorn
 import logging
 from typing import Dict, List, Optional
 import os
+import asyncio
 from database import Database
 from config_manager import ConfigManager
+import discord
+from discord.ext import commands
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,11 +24,42 @@ app = FastAPI(
 # Global variables for database and config
 db: Optional[Database] = None
 config: Optional[ConfigManager] = None
+bot: Optional[commands.Bot] = None
+
+# Initialize Discord bot
+def create_bot():
+    """Create and configure Discord bot"""
+    intents = discord.Intents.default()
+    intents.message_content = True
+    intents.members = True
+    intents.guilds = True
+    
+    bot = commands.Bot(command_prefix='!', intents=intents)
+    
+    # Load cogs
+    async def load_cogs():
+        try:
+            await bot.load_extension('cogs.xp_commands')
+            await bot.load_extension('cogs.message_tracker')
+            await bot.load_extension('cogs.voice_tracker')
+            logger.info("All cogs loaded successfully")
+        except Exception as e:
+            logger.error(f"Error loading cogs: {e}")
+    
+    @bot.event
+    async def on_ready():
+        logger.info(f'{bot.user} has connected to Discord!')
+        logger.info(f'Bot is in {len(bot.guilds)} guild(s)')
+    
+    # Load cogs when bot is ready
+    bot.add_listener(load_cogs, 'on_ready')
+    
+    return bot
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database and config on startup"""
-    global db, config
+    """Initialize database, config, and bot on startup"""
+    global db, config, bot
     
     try:
         # Initialize configuration
@@ -34,17 +68,34 @@ async def startup_event():
         # Initialize database
         db = Database()
         
-        logger.info("Web service started successfully")
+        # Create and start Discord bot
+        bot = create_bot()
+        
+        # Start bot in background
+        bot_task = asyncio.create_task(
+            bot.start(os.getenv('DISCORD_TOKEN'))
+        )
+        
+        logger.info("Web service and Discord bot started successfully")
     except Exception as e:
-        logger.error(f"Error starting web service: {e}")
+        logger.error(f"Error starting service: {e}")
         raise
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    global bot
+    if bot:
+        await bot.close()
+        logger.info("Discord bot closed")
 
 @app.get("/")
 async def health_check():
     """Health check endpoint"""
+    bot_status = "online" if bot and bot.is_ready() else "offline"
     return {
         "status": "ok",
-        "bot": "running",
+        "bot": bot_status,
         "service": "XPBot Web Service",
         "version": "1.0.0"
     }
