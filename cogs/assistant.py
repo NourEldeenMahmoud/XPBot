@@ -18,14 +18,50 @@ class Assistant(commands.Cog):
 		self.config = config
 		# AI Providers - Gemini only
 		self.gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
-
+		
+		# Owner and special users
+		self.owner_id = 677080266245668864  # البشمهندس نور - المدير
+		self.advisor_role_id = self.config.get("assistant_advisor_role", 0)  # رول المستشار
+		self.special_users = set(self.config.get("assistant_special_users", []))  # أشخاص محددين مسموح لهم
 
 	def _is_author_allowed(self, member: discord.Member) -> bool:
-		allowed = set(self.config.get_assistant_allowed_roles())
-		if not allowed:
+		# المدير (البشمهندس نور) مسموح له دائماً
+		if member.id == self.owner_id:
+			return True
+			
+		# المستشار (رول معين) مسموح له
+		if self.advisor_role_id and hasattr(member, 'roles'):
+			member_role_ids = {r.id for r in member.roles}
+			if self.advisor_role_id in member_role_ids:
+				return True
+		
+		# الأشخاص المحددين مسموح لهم
+		if member.id in self.special_users:
+			return True
+			
+		# الرولز العامة
+		allowed_roles = set(self.config.get_assistant_allowed_roles())
+		if not allowed_roles:
 			return True  # لو مفيش رولز محددة، اسمح للجميع
-		member_role_ids = {r.id for r in member.roles}
-		return any(rid in member_role_ids for rid in allowed)
+		
+		if hasattr(member, 'roles'):
+			member_role_ids = {r.id for r in member.roles}
+			return any(rid in member_role_ids for rid in allowed_roles)
+		
+		return False
+
+	def _get_user_title(self, member: discord.Member) -> str:
+		"""Get appropriate title for user"""
+		if member.id == self.owner_id:
+			return "يا بشمهندس نور"  # المدير
+		elif self.advisor_role_id and hasattr(member, 'roles') and any(r.id == self.advisor_role_id for r in member.roles):
+			return "يا Consigliere "  # المستشار
+		else:
+			return "يا بشمهندس"  # باقي الناس
+
+	def _save_special_users(self):
+		"""Save special users to config"""
+		self.config.set("assistant_special_users", list(self.special_users))
 
 	def _extract_query(self, content: str):
 		text = content.strip()
@@ -112,13 +148,12 @@ class Assistant(commands.Cog):
 				"Content-Type": "application/json",
 			}
 			
-			# Check if it's the owner (Nour Eldeen)
-			is_owner = message.author.id == 1407357893384077344  # Replace with actual owner ID
-			user_title = "يا بشمهندس نور" if is_owner else "يا بشمهندس"
+			# Get appropriate title for user
+			user_title = self._get_user_title(message.author)
 			
 			# Prepare context for Gemini
 			context = (
-				f"انت رنا، سكرتارية السيرفر المصرية المحترفة! 👩‍💼\n\n"
+				f"انت رنا، سكرتارية السيرفر المصرية المحترفة!‍\n\n"
 				"**شخصيتك:**\n"
 				"- بتتكلمي بالمصري العامي باحترام وخفة دم\n"
 				"- سكرتارية محترفة ومهنية\n"
@@ -172,20 +207,51 @@ class Assistant(commands.Cog):
 			logger.error(f"Gemini error: {e}")
 			return ""
 
-	# ------- Admin commands to manage assistant access roles -------
+	# ------- Admin commands to manage assistant access -------
 	@commands.command(name="assistantroles")
 	@commands.has_permissions(administrator=True)
 	async def list_assistant_roles(self, ctx: commands.Context):
+		"""عرض كل الصلاحيات"""
+		embed = discord.Embed(title="صلاحيات رنا", color=0x00ff00)
+		
+		# المدير
+		owner = self.bot.get_user(self.owner_id)
+		owner_name = owner.name if owner else "غير محدد"
+		embed.add_field(name=" المدير", value=f"{owner_name} (ID: {self.owner_id})", inline=False)
+		
+		# المستشار
+		if self.advisor_role_id:
+			advisor_role = ctx.guild.get_role(self.advisor_role_id)
+			advisor_name = advisor_role.name if advisor_role else "غير محدد"
+			embed.add_field(name=" المستشار", value=f"@{advisor_name} (ID: {self.advisor_role_id})", inline=False)
+		else:
+			embed.add_field(name=" المستشار", value="غير محدد", inline=False)
+		
+		# الأشخاص المحددين
+		if self.special_users:
+			special_names = []
+			for user_id in self.special_users:
+				user = self.bot.get_user(user_id)
+				name = user.name if user else f"User {user_id}"
+				special_names.append(f"{name} (ID: {user_id})")
+			embed.add_field(name="⭐ أشخاص محددين", value="\n".join(special_names), inline=False)
+		else:
+			embed.add_field(name="⭐ أشخاص محددين", value="لا يوجد", inline=False)
+		
+		# الرولز العامة
 		roles = self.config.get_assistant_allowed_roles()
-		if not roles:
-			await ctx.send("أي حد يقدر يكلم رنا حالياً.")
-			return
-		mentions = [f"<@&{rid}>" for rid in roles]
-		await ctx.send("الرولز المسموح لها: " + ", ".join(mentions))
+		if roles:
+			mentions = [f"<@&{rid}>" for rid in roles]
+			embed.add_field(name="🔧 رولز عامة", value=", ".join(mentions), inline=False)
+		else:
+			embed.add_field(name="🔧 رولز عامة", value="أي حد", inline=False)
+		
+		await ctx.send(embed=embed)
 
 	@commands.command(name="assistantrole")
 	@commands.has_permissions(administrator=True)
 	async def assistant_role_command(self, ctx: commands.Context, action: str, role: discord.Role):
+		"""إدارة الرولز العامة"""
 		action = action.lower().strip()
 		if action == "add":
 			success = self.config.add_assistant_role(role.id)
@@ -195,6 +261,46 @@ class Assistant(commands.Cog):
 			await ctx.send("تمام، شلت " + role.mention) if success else await ctx.send("مقدرتش أشيل الرول.")
 		else:
 			await ctx.send("استعمل: `!assistantrole add @role` أو `!assistantrole remove @role`")
+
+	@commands.command(name="assistantuser")
+	@commands.has_permissions(administrator=True)
+	async def assistant_user_command(self, ctx: commands.Context, action: str, user: discord.Member):
+		"""إدارة الأشخاص المحددين"""
+		action = action.lower().strip()
+		if action == "add":
+			if user.id in self.special_users:
+				await ctx.send(f"{user.mention} موجود بالفعل في القائمة.")
+			else:
+				self.special_users.add(user.id)
+				self._save_special_users()
+				await ctx.send(f"تمام، ضفت {user.mention} للقائمة.")
+		elif action == "remove":
+			if user.id in self.special_users:
+				self.special_users.remove(user.id)
+				self._save_special_users()
+				await ctx.send(f"تمام، شلت {user.mention} من القائمة.")
+			else:
+				await ctx.send(f"{user.mention} مش موجود في القائمة.")
+		else:
+			await ctx.send("استعمل: `!assistantuser add @user` أو `!assistantuser remove @user`")
+
+	@commands.command(name="setadvisor")
+	@commands.has_permissions(administrator=True)
+	async def set_advisor_role(self, ctx: commands.Context, role: discord.Role):
+		"""تعيين رول المستشار"""
+		self.advisor_role_id = role.id
+		# Save to config
+		self.config.set("assistant_advisor_role", role.id)
+		await ctx.send(f"تمام، رول المستشار دلوقتي {role.mention}")
+
+	@commands.command(name="setowner")
+	@commands.has_permissions(administrator=True)
+	async def set_owner(self, ctx: commands.Context, user: discord.Member):
+		"""تعيين المدير"""
+		self.owner_id = user.id
+		# Save to config
+		self.config.set("assistant_owner_id", user.id)
+		await ctx.send(f"تمام، المدير دلوقتي {user.mention}")
 
 
 async def setup(bot):

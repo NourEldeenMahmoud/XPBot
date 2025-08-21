@@ -95,7 +95,9 @@ class ConfigManager:
                 "multiplier": 1.5
             },
             
-            "assistant_allowed_roles": []
+            "assistant_allowed_roles": [],
+            "assistant_owner_id": 677080266245668864,
+            "assistant_special_users": []
         }
     
     def get(self, key: str, default: Any = None) -> Any:
@@ -279,30 +281,35 @@ class ConfigManager:
         return self.set("mod_log_channel_id", channel_id)
     
     def get_config_summary(self) -> str:
-        """Get configuration summary for display"""
-        summary = "**Current Configuration:**\n\n"
+        """Get a summary of the current configuration"""
+        summary = "**Bot Configuration Summary:**\n\n"
+        
+        # Basic info
+        summary += f"**Guild ID:** {self.get_guild_id()}\n"
+        summary += f"**Bot Token:** {'✅ Set' if self.get_bot_token() else '❌ Not set'}\n"
+        summary += f"**Announcements Channel:** {self.get_announcements_channel_id()}\n"
+        summary += f"**Mod Log Channel:** {self.get_mod_log_channel_id()}\n"
         
         # XP Settings
-        summary += "**XP Settings:**\n"
-        summary += f"• Message XP: {self.get_message_xp_min()}-{self.get_message_xp_max()} XP\n"
-        summary += f"• Message Cooldown: {self.get_message_cooldown()} seconds\n"
-        summary += f"• Voice XP: {self.get_voice_xp_min()}-{self.get_voice_xp_max()} XP\n"
-        summary += f"• Voice Tick Interval: {self.get_voice_tick_interval()} seconds\n\n"
+        summary += f"\n**XP Settings:**\n"
+        summary += f"- Message XP: {self.get_message_xp_min()}-{self.get_message_xp_max()}\n"
+        summary += f"- Message Cooldown: {self.get_message_cooldown()}s\n"
+        summary += f"- Voice XP: {self.get_voice_xp_min()}-{self.get_voice_xp_max()}\n"
+        summary += f"- Voice Tick Interval: {self.get_voice_tick_interval()}s\n"
         
         # Channels
-        summary += "**Channels:**\n"
-        summary += f"• Message Whitelist: {len(self.get_message_whitelist())} channels\n"
-        summary += f"• Voice Whitelist: {len(self.get_voice_whitelist())} channels\n"
-        summary += f"• Announcements: <#{self.get_announcements_channel_id()}>\n"
-        summary += f"• Mod Log: <#{self.get_mod_log_channel_id()}>\n\n"
+        summary += f"\n**Channels:**\n"
+        summary += f"- Message Whitelist: {len(self.get_message_whitelist())} channels\n"
+        summary += f"- Voice Whitelist: {len(self.get_voice_whitelist())} channels\n"
         
-        # Role Rewards
-        summary += "**Role Rewards:**\n"
-        rewards = self.get_role_rewards()
-        for level, role_id in rewards.items():
-            summary += f"• Level {level}: <@&{role_id}>\n"
+        # Role rewards
+        role_rewards = self.get_role_rewards()
+        summary += f"\n**Role Rewards:** {len(role_rewards)} levels\n"
+        for level, role_id in role_rewards.items():
+            summary += f"- Level {level}: <@&{role_id}>\n"
         
         summary += f"\n**Exempt Roles:** {len(self.get_exempt_roles())} roles\n"
+        
         # Assistant access
         assistant_roles = ", ".join(f"<@&{rid}>" for rid in self.get_assistant_allowed_roles()) or "Everyone"
         summary += f"**Assistant Allowed Roles:** {assistant_roles}\n"
