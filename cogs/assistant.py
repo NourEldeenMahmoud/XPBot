@@ -104,9 +104,6 @@ class Assistant(commands.Cog):
 		except Exception as e:
 			logger.error(f"Assistant error: {e}")
 			await message.channel.send("حاضر يا بشمهندس.. حصلت مشكلة بسيطة بس تمام هظبطها.")
-		
-		# Process commands after assistant response
-		await self.bot.process_commands(message)
 
 	async def _handle_query(self, message: discord.Message, query: str) -> str:
 		q = query.strip()
