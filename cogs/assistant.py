@@ -17,7 +17,7 @@ class Assistant(commands.Cog):
 		self.db = database
 		self.config = config
 		self.api_key = os.getenv("GROQ_API_KEY", "").strip()
-		self.model_name = os.getenv("GROQ_MODEL", "llama-3.1-8b-instruct").strip()
+		self.model_name = os.getenv("GROQ_MODEL", "mixtral-8x7b-32768").strip()
 
 	def _is_author_allowed(self, member: discord.Member) -> bool:
 		allowed = set(self.config.get_assistant_allowed_roles())
@@ -40,14 +40,26 @@ class Assistant(commands.Cog):
 			return
 		if message.guild.id != self.config.get_guild_id():
 			return
-
-		query = self._extract_query(message.content)
-		if query is None:
+		# لا تتدخل في الأوامر
+		content_stripped = (message.content or "").lstrip()
+		if content_stripped.startswith("!"):
 			return
-
+		# لازم منشن للبوت عشان AI يرد
+		if not self.bot.user or self.bot.user not in message.mentions:
+			return
+		# تحقق من الرولز المسموح لها
 		if not self._is_author_allowed(message.author):
-			return  # مش من الرولز المسموح لها
-
+			return
+		# حضّر الاستعلام: شيل المنشنات وأي تريجر اختياري
+		clean = message.content
+		for m in message.mentions:
+			try:
+				clean = clean.replace(m.mention, "")
+			except Exception:
+				pass
+		for t in WAKE_TRIGGERS:
+			clean = clean.replace(t, "")
+		query = clean.strip(" \t\n\r،,.-!ـ—_")
 		try:
 			reply = await self._handle_query(message, query)
 			if reply:
@@ -178,8 +190,9 @@ class Assistant(commands.Cog):
 				{"role": "system", "content": "\n".join(context_snippets)},
 				{"role": "user", "content": user_query},
 			]
+			model_to_use = self.model_name or "mixtral-8x7b-32768"
 			payload = {
-				"model": self.model_name or "llama-3.1-8b-instruct",
+				"model": model_to_use,
 				"messages": messages,
 				"temperature": 0.3,
 				"max_tokens": 512,
@@ -187,7 +200,23 @@ class Assistant(commands.Cog):
 			async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
 				async with session.post(endpoint, headers=headers, json=payload) as resp:
 					if resp.status != 200:
-						logger.error(f"Groq API error: {resp.status} {await resp.text()}")
+						err_text = await resp.text()
+						logger.error(f"Groq API error: {resp.status} {err_text}")
+						# Fallback تلقائي للموديل الافتراضي المدعوم
+						if ("model_not_found" in err_text) or ("does not exist" in err_text):
+							payload["model"] = "mixtral-8x7b-32768"
+							async with session.post(endpoint, headers=headers, json=payload) as resp2:
+								if resp2.status != 200:
+									logger.error(f"Groq API fallback error: {resp2.status} {await resp2.text()}")
+									return ""
+								data2 = await resp2.json()
+								text2 = (
+									data2.get("choices", [{}])[0]
+									.get("message", {})
+									.get("content", "")
+									.strip()
+								)
+								return text2[:1800]
 						return ""
 					data = await resp.json()
 					text = (
