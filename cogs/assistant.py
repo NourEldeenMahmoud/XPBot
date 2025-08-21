@@ -16,9 +16,10 @@ class Assistant(commands.Cog):
 		self.xp_manager = xp_manager
 		self.db = database
 		self.config = config
-		# OpenAI GPT-3.5 only
-		self.api_key = os.getenv("OPENAI_API_KEY", "").strip()
-		self.model_name = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo").strip()
+		# AI Providers
+		self.openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+		self.openai_model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo").strip()
+		self.gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
 
 
 	def _is_author_allowed(self, member: discord.Member) -> bool:
@@ -86,13 +87,32 @@ class Assistant(commands.Cog):
 
 
 	async def _ai_chat(self, message: discord.Message, user_query: str) -> str:
-		"""Call OpenAI Chat Completions to answer general queries in Egyptian Arabic."""
+		"""Call AI providers (OpenAI -> Gemini) to answer general queries in Egyptian Arabic."""
 		try:
-			if not self.api_key:
-				return "أيوه يا فندم؟ 👩‍💼 أنا رنا، سكرتارية السيرفر! أقدر أساعدك في أي حاجة - أوامر البوت، معلومات السيرفر، أو أي استفسار تاني. تحب تعرف إيه؟"
+			# Try OpenAI first
+			if self.openai_key:
+				response = await self._try_openai(message, user_query)
+				if response:
+					return response
+			
+			# Try Gemini as fallback
+			if self.gemini_key:
+				response = await self._try_gemini(message, user_query)
+				if response:
+					return response
+			
+			# No AI available
+			return "أيوه يا بشمهندس؟ 👩‍💼 أنا رنا، سكرتارية السيرفر! أقدر أساعدك في أي حاجة - أوامر البوت، معلومات السيرفر، أو أي استفسار تاني. تحب تعرف إيه؟"
+		except Exception as e:
+			logger.error(f"AI chat error: {e}")
+			return ""
+
+	async def _try_openai(self, message: discord.Message, user_query: str) -> str:
+		"""Try OpenAI API first."""
+		try:
 			endpoint = "https://api.openai.com/v1/chat/completions"
 			headers = {
-				"Authorization": f"Bearer {self.api_key}",
+				"Authorization": f"Bearer {self.openai_key}",
 				"Content-Type": "application/json",
 			}
 			context_snippets = []
@@ -119,7 +139,7 @@ class Assistant(commands.Cog):
 				"- بتعرفي كل حاجة عن السيرفر والأوامر\n"
 				"- ردودك ودودة ومفيدة\n\n"
 				"**طريقة كلامك:**\n"
-				"- استخدمي المصري العامي: 'أيوه'، 'تمام'، 'حاضر'، 'يا فندم'\n"
+				"- باستخدمي المصري العامي: 'أيوه'، 'تمام'، 'حاضر'، 'يا بشمهندس ومتستخدميش يافندم خالص '\n"
 				"- كوني محترمة ومهنية\n"
 				"- اضحكي وكوني ودودة\n"
 				"- اشرحي ببساطة ووضوح\n"
@@ -133,7 +153,7 @@ class Assistant(commands.Cog):
 				{"role": "user", "content": user_query},
 			]
 			payload = {
-				"model": self.model_name,
+				"model": self.openai_model,
 				"messages": messages,
 				"temperature": 0.3,
 				"max_tokens": 512,
@@ -152,9 +172,73 @@ class Assistant(commands.Cog):
 					else:
 						err_text = await resp.text()
 						logger.error(f"OpenAI API error: {resp.status} {err_text}")
+						# Check if it's a rate limit or quota exceeded
+						if "rate_limit" in err_text.lower() or "quota" in err_text.lower() or "limit" in err_text.lower():
+							logger.info("OpenAI limit reached, will try Gemini")
+							return ""  # Try Gemini
 						return ""
 		except Exception as e:
-			logger.error(f"AI chat error: {e}")
+			logger.error(f"OpenAI error: {e}")
+			return ""
+
+	async def _try_gemini(self, message: discord.Message, user_query: str) -> str:
+		"""Try Gemini API as fallback."""
+		try:
+			endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+			headers = {
+				"Content-Type": "application/json",
+			}
+			
+			# Prepare context for Gemini
+			context = (
+				"انت رنا، سكرتارية السيرفر المصرية المحترفة! 👩‍💼\n\n"
+				"**شخصيتك:**\n"
+				"- بتتكلمي بالمصري العامي باحترام وخفة دم\n"
+				"- سكرتارية محترفة ومهنية\n"
+				"- بتساعدي الناس في أي حاجة\n"
+				"- بتعرفي كل حاجة عن السيرفر والأوامر\n"
+				"- ردودك ودودة ومفيدة\n\n"
+				"**طريقة كلامك:**\n"
+				"- استخدمي المصري العامي: 'أيوه'، 'تمام'، 'حاضر'، 'يا فندم'\n"
+				"- كوني محترمة ومهنية\n"
+				"- اضحكي وكوني ودودة\n"
+				"- اشرحي ببساطة ووضوح\n"
+				"- لو حد سأل عن أوامر البوت، اشرحيها له\n"
+				"- لو حد سأل عن إحصائيات، قولي له يجرب !rank أو !leaderboard\n\n"
+				"**معلومات السيرفر:**\n"
+				"- أوامر البوت: !rank (الرتبة)، !leaderboard (الترتيب)، !weeklyleaderboard (الأسبوعي)\n"
+				"- أوامر المشرفين: !config (الإعدادات)، !delete/!clear (مسح رسائل)\n"
+				"- البوت بيتبع XP للناس وبيحسب المستويات\n\n"
+				"**تذكري:** انتي سكرتارية محترفة، مش بوت عادي. كوني ودودة ومفيدة!"
+			)
+			
+			payload = {
+				"contents": [
+					{
+						"parts": [
+							{"text": context + "\n\n" + user_query}
+						]
+					}
+				],
+				"generationConfig": {
+					"temperature": 0.3,
+					"maxOutputTokens": 512,
+				}
+			}
+			
+			url = f"{endpoint}?key={self.gemini_key}"
+			async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
+				async with session.post(url, headers=headers, json=payload) as resp:
+					if resp.status == 200:
+						data = await resp.json()
+						text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+						return text[:1800]
+					else:
+						err_text = await resp.text()
+						logger.error(f"Gemini API error: {resp.status} {err_text}")
+						return ""
+		except Exception as e:
+			logger.error(f"Gemini error: {e}")
 			return ""
 
 	# ------- Admin commands to manage assistant access roles -------
