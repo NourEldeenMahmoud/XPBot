@@ -319,15 +319,15 @@ class Database:
         ]
     
     def get_weekly_leaderboard(self, guild_id: int, limit: int = 10) -> List[Dict]:
-        """Get weekly leaderboard based on activity (messages + voice time)"""
+        """Get weekly leaderboard based on weekly XP"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT user_id, message_count, voice_time, weekly_xp
+            SELECT user_id, weekly_xp
             FROM users 
-            WHERE guild_id = ? AND (message_count > 0 OR voice_time > 0)
-            ORDER BY (message_count + voice_time) DESC
+            WHERE guild_id = ? AND weekly_xp > 0
+            ORDER BY weekly_xp DESC
             LIMIT ?
         ''', (guild_id, limit))
         
@@ -337,10 +337,7 @@ class Database:
         return [
             {
                 'user_id': row[0],
-                'message_count': row[1],
-                'voice_time': row[2],
-                'weekly_xp': row[3],
-                'activity_score': row[1] + row[2],  # messages + voice time
+                'weekly_xp': row[1],
                 'rank': i + 1
             }
             for i, row in enumerate(results)

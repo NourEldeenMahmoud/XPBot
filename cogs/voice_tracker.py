@@ -136,8 +136,11 @@ class VoiceTracker(commands.Cog):
                             # Update voice tick timestamp
                             self.db.update_voice_tick(guild_id, session['user_id'])
                             
-                            # Update voice time (1 minute per tick)
-                            self.db.update_user_voice_time(guild_id, session['user_id'], 1)
+                            # Update voice time (calculate actual minutes passed)
+                            minutes_passed = int((current_time - session['last_xp_tick']) / 60)
+                            if minutes_passed < 1:
+                                minutes_passed = 1  # Minimum 1 minute
+                            self.db.update_user_voice_time(guild_id, session['user_id'], minutes_passed)
                         
                         # Add small delay to prevent overwhelming the database
                         await asyncio.sleep(0.1)

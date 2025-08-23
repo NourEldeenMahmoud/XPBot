@@ -679,7 +679,10 @@ class XPCommands(commands.Cog):
 
             # XP value on right, above progress percentage
             current_level_xp = self.xp_manager.calculate_xp_for_level(level)
-            value = f"{current_level_xp:,} /{total_xp:,}"
+            user_xp_in_level = total_xp - current_level_xp
+            next_level_xp = self.xp_manager.calculate_xp_for_level(level + 1)
+            xp_needed_for_level = next_level_xp - current_level_xp
+            value = f"{user_xp_in_level:,} / {xp_needed_for_level:,}"
             value_w = draw.textlength(value, font=value_font)
             value_x = bar_x + bar_w - value_w  # align right edge with progress bar end
             value_y = progress_y - 50  # slightly lower (down a bit)
