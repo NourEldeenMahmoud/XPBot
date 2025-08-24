@@ -336,6 +336,10 @@ class Database:
         results = cursor.fetchall()
         conn.close()
         
+        # Debug: Log the data being returned
+        for i, row in enumerate(results):
+            logger.info(f"Weekly leaderboard entry {i+1}: user_id={row[0]}, weekly_xp={row[1]}, voice_time={row[2]}, message_count={row[3]}")
+        
         return [
             {
                 'user_id': row[0],

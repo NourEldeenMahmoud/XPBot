@@ -656,6 +656,9 @@ class XPCommands(commands.Cog):
             
             # Add voice time and message count below name
             stats_text = f"🎤 {voice_time}m • 💬 {message_count:,} msgs"
+            
+            # Debug: Log the data being used
+            logger.info(f"Leaderboard image data for user {entry['user_id']}: voice_time={voice_time}, message_count={message_count}, permanent_xp={total_xp}")
             stats_y = text_top_y + 50
             stats_font = self._get_font(24, bold=False)
             draw.text((text_col_x, stats_y), stats_text, fill=(180, 200, 255), font=stats_font)
@@ -805,9 +808,12 @@ class XPCommands(commands.Cog):
             name = member.display_name
             draw.text((text_col_x, text_top_y), name, fill=(255, 255, 255), font=name_font)
 
-            # Get voice time and message count from leaderboard data
+                    # Get voice time and message count from leaderboard data
             voice_minutes = entry.get('voice_time', 0) or 0
             messages_count = entry.get('message_count', 0) or 0
+            
+            # Debug: Log the data being used
+            logger.info(f"Weekly leaderboard image data for user {entry['user_id']}: voice_time={voice_minutes}, message_count={messages_count}, weekly_xp={entry.get('weekly_xp', 0)}")
             
             # Voice time (convert minutes to hours)
             voice_hours = voice_minutes // 60
