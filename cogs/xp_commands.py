@@ -665,6 +665,8 @@ class XPCommands(commands.Cog):
             
             # Debug: Log the data being used
             logger.info(f"Leaderboard image data for user {entry['user_id']}: voice_time={voice_time}, message_count={message_count}, permanent_xp={total_xp}")
+            
+            # Draw stats below name
             stats_y = text_top_y + 50
             stats_font = self._get_font(24, bold=False)
             draw.text((text_col_x, stats_y), stats_text, fill=(180, 200, 255), font=stats_font)
