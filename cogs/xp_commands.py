@@ -653,10 +653,18 @@ class XPCommands(commands.Cog):
             name_font = self._get_font(44, bold=True)  # increase font size by 2 levels
             # Padding from card edge already ensured via text_col_x
             draw.text((text_col_x, text_top_y), display_name, fill=(255, 255, 255), font=name_font)
+            
+            # Add voice time and message count below name
+            stats_text = f"🎤 {voice_time}m • 💬 {message_count:,} msgs"
+            stats_y = text_top_y + 50
+            stats_font = self._get_font(24, bold=False)
+            draw.text((text_col_x, stats_y), stats_text, fill=(180, 200, 255), font=stats_font)
 
             # Progress label under name
             level = entry.get('level', 1)
             total_xp = entry.get('permanent_xp', 0)
+            voice_time = entry.get('voice_time', 0) or 0
+            message_count = entry.get('message_count', 0) or 0
             current_level_xp = self.xp_manager.calculate_xp_for_level(level)
             next_level_xp = self.xp_manager.calculate_xp_for_level(level + 1)
             xp_progress = max(0, total_xp - current_level_xp)
@@ -798,8 +806,8 @@ class XPCommands(commands.Cog):
             draw.text((text_col_x, text_top_y), name, fill=(255, 255, 255), font=name_font)
 
             # Get voice time and message count from leaderboard data
-            voice_minutes = entry.get('voice_time', 0)
-            messages_count = entry.get('message_count', 0)
+            voice_minutes = entry.get('voice_time', 0) or 0
+            messages_count = entry.get('message_count', 0) or 0
             
             # Voice time (convert minutes to hours)
             voice_hours = voice_minutes // 60
@@ -818,9 +826,9 @@ class XPCommands(commands.Cog):
             stats_y = text_top_y + 70
             draw.text((text_col_x, stats_y), stats_text, fill=(180, 200, 255), font=stats_font)
             
-            # Activity score on right side (even bigger)
-            activity_score = entry.get('activity_score', 0)
-            score_text = f"{activity_score:,} pts"
+            # Weekly XP on right side (even bigger)
+            weekly_xp = entry.get('weekly_xp', 0)
+            score_text = f"{weekly_xp:,} XP"
             score_w = draw.textlength(score_text, font=value_font)
             score_x = card_x + card_w - score_w - 40
             score_y = card_y + (card_height - 50) // 2

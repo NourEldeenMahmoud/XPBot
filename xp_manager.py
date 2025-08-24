@@ -451,6 +451,8 @@ class XPManager:
         total_xp = user_data['permanent_xp']
         weekly_xp = user_data['weekly_xp']
         level = user_data['level']
+        voice_time = user_data.get('voice_time', 0)
+        message_count = user_data.get('message_count', 0)
         
         # Calculate XP progress to next level
         current_level_xp = self.calculate_xp_for_level(level)
@@ -466,6 +468,8 @@ class XPManager:
             'total_xp': total_xp,
             'weekly_xp': weekly_xp,
             'level': level,
+            'voice_time': voice_time,
+            'message_count': message_count,
             'xp_progress': xp_progress,
             'xp_needed': xp_needed,
             'permanent_rank': permanent_rank,

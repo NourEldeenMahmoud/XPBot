@@ -293,12 +293,12 @@ class Database:
             return False
     
     def get_leaderboard(self, guild_id: int, limit: int = 10) -> List[Dict]:
-        """Get permanent leaderboard"""
+        """Get permanent leaderboard with full stats"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT user_id, permanent_xp, level
+            SELECT user_id, permanent_xp, level, voice_time, message_count
             FROM users 
             WHERE guild_id = ?
             ORDER BY permanent_xp DESC
@@ -313,18 +313,20 @@ class Database:
                 'user_id': row[0],
                 'permanent_xp': row[1],
                 'level': row[2],
+                'voice_time': row[3] or 0,
+                'message_count': row[4] or 0,
                 'rank': i + 1
             }
             for i, row in enumerate(results)
         ]
     
     def get_weekly_leaderboard(self, guild_id: int, limit: int = 10) -> List[Dict]:
-        """Get weekly leaderboard based on weekly XP"""
+        """Get weekly leaderboard based on weekly XP with full stats"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT user_id, weekly_xp
+            SELECT user_id, weekly_xp, voice_time, message_count
             FROM users 
             WHERE guild_id = ? AND weekly_xp > 0
             ORDER BY weekly_xp DESC
@@ -338,6 +340,8 @@ class Database:
             {
                 'user_id': row[0],
                 'weekly_xp': row[1],
+                'voice_time': row[2] or 0,
+                'message_count': row[3] or 0,
                 'rank': i + 1
             }
             for i, row in enumerate(results)
