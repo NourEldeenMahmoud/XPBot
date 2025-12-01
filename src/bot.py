@@ -4,9 +4,9 @@ import logging
 import asyncio
 import os
 from datetime import datetime
-from database import Database
-from config_manager import ConfigManager
-from xp_manager import XPManager
+from src.database import Database
+from src.config_manager import ConfigManager
+from src.xp_manager import XPManager
 
 # Configure logging
 logging.basicConfig(
@@ -49,10 +49,10 @@ class XPBot(commands.Bot):
         logger.info("Setting up bot...")
         
         # Load cogs
-        await self.load_extension('cogs.xp_commands')
-        await self.load_extension('cogs.message_tracker')
-        await self.load_extension('cogs.voice_tracker')
-        await self.load_extension('cogs.assistant')
+        await self.load_extension('src.cogs.xp_commands')
+        await self.load_extension('src.cogs.message_tracker')
+        await self.load_extension('src.cogs.voice_tracker')
+        await self.load_extension('src.cogs.assistant')
         
         logger.info("All cogs loaded successfully")
     
@@ -131,3 +131,4 @@ async def main():
 if __name__ == "__main__":
     # Run the bot
     asyncio.run(main())
+

@@ -1,0 +1,42 @@
+{
+  "guild_id": 0,
+  "bot_token": "YOUR_BOT_TOKEN_HERE",
+  "announcements_channel_id": 0,
+  "mod_log_channel_id": 0,
+  
+  "xp_settings": {
+    "message_xp_min": 15,
+    "message_xp_max": 15,
+    "message_cooldown_seconds": 20,
+    "voice_xp_min": 25,
+    "voice_xp_max": 25,
+    "voice_tick_interval_seconds": 60
+  },
+  
+  "channels": {
+    "message_whitelist": [],
+    "voice_whitelist": []
+  },
+  
+  "role_rewards": {},
+  
+  "exempt_roles": [],
+  
+  "level_formula": {
+    "type": "xp_anchors",
+    "anchors": [
+      { "level": 5,  "xp": 7500 },
+      { "level": 10, "xp": 60000 },
+      { "level": 20, "xp": 120000 },
+      { "level": 30, "xp": 225000 },
+      { "level": 50, "xp": 375000 }
+    ],
+    "base_xp": 100,
+    "multiplier": 1.5
+  },
+  
+  "assistant_allowed_roles": [],
+  "assistant_owner_id": 0,
+  "assistant_special_users": []
+}
+

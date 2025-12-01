@@ -4,11 +4,15 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
 class Database:
-    def __init__(self, db_path: str = "xp_bot.db"):
+    def __init__(self, db_path: str = None):
+        if db_path is None:
+            # Default to config directory or root
+            db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "xp_bot.db")
         self.db_path = db_path
         self.init_database()
     
@@ -135,7 +139,8 @@ class Database:
                 UPDATE users 
                 SET permanent_xp = permanent_xp + ?, 
                     weekly_xp = weekly_xp + ?,
-                    last_message_xp_timestamp = ?
+                    last_message_xp_timestamp = ?,
+                    message_count = message_count + 1
                 WHERE guild_id = ? AND user_id = ?
             ''', (xp_amount, xp_amount, datetime.now().timestamp(), guild_id, user_id))
             
@@ -579,3 +584,4 @@ class Database:
             json.dump(backup_data, f, indent=2)
         
         return filename
+

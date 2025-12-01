@@ -4,8 +4,8 @@ import uvicorn
 import logging
 from typing import Dict, List, Optional
 import os
-from database import Database
-from config_manager import ConfigManager
+from src.database import Database
+from src.config_manager import ConfigManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -132,7 +132,7 @@ async def get_user_stats(user_id: int):
             raise HTTPException(status_code=404, detail="User not found")
         
         # Calculate level
-        from xp_manager import XPManager
+        from src.xp_manager import XPManager
         xp_manager = XPManager(None, db, config)
         level = xp_manager.calculate_level(user_data['permanent_xp'])
         

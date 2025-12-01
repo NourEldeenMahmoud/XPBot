@@ -8,9 +8,9 @@ import asyncio
 import random
 import time
 from datetime import datetime, timedelta
-from database import Database
-from config_manager import ConfigManager
-from xp_manager import XPManager
+from src.database import Database
+from src.config_manager import ConfigManager
+from src.xp_manager import XPManager
 
 class MockBot:
     """Mock bot class for testing"""

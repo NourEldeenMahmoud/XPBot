@@ -11,7 +11,11 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 class ConfigManager:
-    def __init__(self, config_file: str = "config.json"):
+    def __init__(self, config_file: str = None):
+        if config_file is None:
+            # Default to config directory or root
+            base_dir = os.path.dirname(os.path.dirname(__file__))
+            config_file = os.path.join(base_dir, "config.json")
         self.config_file = config_file
         self.config = self.load_config()
     

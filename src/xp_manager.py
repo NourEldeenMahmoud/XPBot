@@ -3,8 +3,8 @@ import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import discord
-from database import Database
-from config_manager import ConfigManager
+from src.database import Database
+from src.config_manager import ConfigManager
 
 logger = logging.getLogger(__name__)
 
